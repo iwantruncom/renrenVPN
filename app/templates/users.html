@@ -1,0 +1,129 @@
+{% extends "base.html" %}
+{% block title %}用户{% endblock %}
+{% block content %}
+{% if msg %}<div class="notice success">{{ msg }}</div>{% endif %}
+{% if error %}<div class="notice error">{{ error }}</div>{% endif %}
+
+<div class="page-head">
+  <h1>用户</h1>
+</div>
+
+<section class="card" id="add-user">
+  <header class="card-head"><h2>添加用户</h2></header>
+  <form class="card-body" method="post" action="/users/add" data-wait-form>
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+    <label for="name">名称</label>
+    <div class="input-action">
+      <input id="name" name="name" maxlength="32" pattern="[A-Za-z0-9_]+"
+             placeholder="例如：mama 或 iphone" required autocomplete="off">
+      <button class="button primary" type="submit" data-wait-text="正在添加…">添加</button>
+    </div>
+    <small class="field-hint">英文、数字或下划线，最长 32 个字符。添加后会自动生成连接。</small>
+  </form>
+</section>
+
+<section class="card">
+  <header class="card-head"><h2>用户列表 <span class="count">{{ clients|length }}</span></h2></header>
+  <div class="user-list">
+  {% if clients %}
+  <div class="user-list-head" aria-hidden="true">
+    <span>名称</span><span>状态</span><span>已用流量</span><span class="hide-sm">最后活动</span><span></span>
+  </div>
+  {% endif %}
+  {% for client in clients %}
+  <details class="user-card" id="user-{{ client.id }}"
+           {%- if request.query_params.get('open') == client.name %} open{% endif %}>
+    <summary class="user-header">
+      <span class="user-name">{{ client.name }}</span>
+      <span>
+        {% if not client.enabled %}<span class="badge muted">已暂停</span>
+        {% elif client.online %}<span class="badge ok">在线</span>
+        {% else %}<span class="badge">可用</span>{% endif %}
+      </span>
+      <span class="user-meta">{{ client.traffic or '—' }}</span>
+      <span class="user-meta hide-sm">{{ client.last_seen or '—' }}</span>
+      <span class="user-chevron" aria-hidden="true">›</span>
+    </summary>
+
+    <div class="user-body">
+      {% if client.enabled %}
+      <section class="share-steps">
+        <h3>发给使用者</h3>
+        <p class="kv-muted">对方打开教程链接、输入访问码，按自己的设备一步步装好。两者请分开发送，例如链接发微信，访问码电话告知。</p>
+        <dl class="kv">
+          <dt>教程链接</dt>
+          <dd class="share-line">
+            <input id="guide-url-{{ client.id }}" value="{{ client.guide_url }}" readonly
+                   aria-label="{{ client.name }} 的教程链接">
+            <button class="icon-button" type="button" data-copy-target="guide-url-{{ client.id }}"
+                    title="复制教程链接" aria-label="复制教程链接">复制</button>
+          </dd>
+          <dt>访问码</dt>
+          <dd class="share-line">
+            <input id="guide-code-{{ client.id }}" value="{{ client.guide_code }}" readonly
+                   aria-label="{{ client.name }} 的教程访问码">
+            <button class="icon-button" type="button" data-copy-target="guide-code-{{ client.id }}"
+                    title="复制访问码" aria-label="复制访问码">复制</button>
+          </dd>
+        </dl>
+        <a class="preview-link" href="{{ client.guide_url }}" target="_blank" rel="noopener noreferrer">预览教程页 ↗</a>
+      </section>
+
+      <section class="sub-card">
+        <img class="sub-qr" src="/sub/{{ client.sub_token }}/qr.png"
+             alt="{{ client.name }} 的订阅二维码" loading="lazy">
+        <div class="sub-copy">
+          <h3>订阅链接</h3>
+          <p class="kv-muted">已经会用客户端的人，直接在客户端「添加订阅」里粘贴或扫码即可，手机电脑共用。</p>
+          <div class="share-line">
+            <input id="sub-{{ client.id }}" value="{{ client.sub_url }}" readonly
+                   aria-label="{{ client.name }} 的订阅链接">
+            <button class="icon-button" type="button" data-copy-target="sub-{{ client.id }}"
+                   title="复制链接" aria-label="复制链接">复制</button>
+          </div>
+        </div>
+      </section>
+
+      {% with connection_methods=client.connection_methods, sub_url=client.sub_url, method_id=client.id %}
+      {% include "connection_methods.html" %}
+      {% endwith %}
+
+      {% else %}
+      <p class="kv-muted">已暂停。恢复使用后原来的链接立即生效，不需要重新发送。</p>
+      {% endif %}
+    </div>
+
+    <footer class="user-actions">
+      <form method="post" action="/users/{{ client.name }}/toggle">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+        <button class="button secondary compact" type="submit">
+          {{ '暂停使用' if client.enabled else '恢复使用' }}</button>
+      </form>
+      <details class="more-actions">
+        <summary>更多操作</summary>
+        <div class="more-actions-menu">
+          <form method="post" action="/users/{{ client.name }}/rotate"
+                data-confirm="重置后，{{ client.name }} 手上的旧订阅和连接会立刻失效，需要重新发给他。确定吗？">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+            <button class="button secondary compact" type="submit">重置订阅链接</button>
+          </form>
+          <form method="post" action="/users/{{ client.name }}/rotate-guide"
+                data-confirm="更换后，旧教程链接和访问码会失效；订阅和 VPN 连接不受影响。确定吗？">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+            <button class="button secondary compact" type="submit">更换教程链接和访问码</button>
+          </form>
+          <form method="post" action="/users/{{ client.name }}/delete"
+                data-confirm="删除后 {{ client.name }} 立刻无法使用，且不能恢复。确定删除吗？">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+            <button class="text-danger" type="submit">删除用户</button>
+          </form>
+        </div>
+      </details>
+    </footer>
+  </details>
+  {% else %}
+  <p class="card-empty">暂无用户，在上方添加一个。</p>
+  {% endfor %}
+  </div>
+</section>
+{% endblock %}

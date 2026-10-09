@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="color-scheme" content="light">
+  <meta name="robots" content="noindex, nofollow">
+  <title>打开连接教程｜人人VPN</title>
+  <link rel="stylesheet" href="{{ static_path }}/app.css?v=20261009a">
+</head>
+<body class="guide-access-page">
+  <main class="guide-access-card">
+    <img src="{{ static_path }}/renrenvpn-source-logo.png"
+         alt="人人VPN" width="180" height="120">
+    <h1>打开连接教程</h1>
+    <p>向分享这条链接的人索取访问码。</p>
+    {% if error %}<div class="notice error" role="alert">{{ error }}</div>{% endif %}
+    <form method="post" action="{{ guide_path }}">
+      <label for="guide-code">访问码</label>
+      <input id="guide-code" name="code" type="password" maxlength="13"
+             autocomplete="one-time-code" required autofocus>
+      <button class="button primary wide" type="submit">打开教程</button>
+    </form>
+  </main>
+</body>
+</html>

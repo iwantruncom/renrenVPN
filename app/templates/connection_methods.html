@@ -1,0 +1,37 @@
+{# Single-protocol links stay collapsed: the subscription covers every protocol. #}
+<details class="advanced-block connection-methods">
+  <summary>高级：单条协议链接（一般用不到）</summary>
+  <p class="connection-methods-hint">订阅已经包含下面所有连接。只有客户端不支持订阅、或者想单独测试某一种时才用这里。</p>
+  <div class="connection-method-grid">
+    {% for protocol, link in connection_methods %}
+    <article class="connection-method" data-protocol="{{ protocol.key }}">
+      {% if link %}
+      <img class="sub-qr" src="{{ sub_url }}/qr.png?p={{ protocol.key }}"
+           alt="{{ protocol.simple_name }}原始连接二维码" width="128" height="128" loading="lazy">
+      {% endif %}
+      <div class="connection-method-content">
+      <h3>{{ protocol.simple_name }}</h3>
+      <span class="connection-method-tech">{{ protocol.tech_name }}</span>
+      {% if protocol.key == 'vless-reality' %}
+      <p>平时优先使用。扫码或复制链接，导入这一条连接。</p>
+      {% elif protocol.key == 'hysteria2' %}
+      <p>网络丢包、信号不稳时试这个。扫码或复制链接，导入这一条连接。</p>
+      <p class="connection-method-note">需使用支持证书指纹校验的客户端。</p>
+      {% else %}
+      <p>{{ protocol.hint }}</p>
+      {% endif %}
+      {% if link %}
+      <div class="share-line">
+        <input id="node-{{ method_id }}-{{ protocol.key }}" value="{{ link }}" readonly
+               aria-label="{{ protocol.simple_name }}原始连接链接">
+        <button class="icon-button" type="button" data-copy-target="node-{{ method_id }}-{{ protocol.key }}"
+                aria-label="复制{{ protocol.simple_name }}原始连接">复制</button>
+      </div>
+      {% else %}
+      <p class="connection-method-note">暂不提供此协议的原始链接，请使用完整配置导入。</p>
+      {% endif %}
+      </div>
+    </article>
+    {% endfor %}
+  </div>
+</details>

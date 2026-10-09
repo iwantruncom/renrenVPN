@@ -1,0 +1,237 @@
+{% extends "base.html" %}
+{% block title %}概览{% endblock %}
+{% block content %}
+{% if msg %}<div class="notice success">{{ msg }}</div>{% endif %}
+{% if error %}<div class="notice error">{{ error }}</div>{% endif %}
+
+<div class="guide-backdrop" id="guide-modal"
+     data-open-step="{{ 2 if guide else (1 if first_visit or client_count == 0 or request.query_params.get('guide_error') else 0) }}"
+     data-first="{{ 1 if first_visit else 0 }}" hidden>
+  <div class="guide-modal" role="dialog" aria-modal="true" aria-labelledby="guide-title">
+    <header class="guide-head">
+      <h2 class="guide-head-title">新手引导</h2>
+      <button class="guide-close" type="button" data-guide-close aria-label="关闭引导">×</button>
+      <ol class="guide-steps">
+        <li data-step-dot="1">添加用户</li>
+        <li data-step-dot="2">装客户端</li>
+        <li data-step-dot="3">导入连接</li>
+      </ol>
+    </header>
+
+    <section class="guide-body" data-guide-step="1">
+      <h2 id="guide-title">添加一个用户</h2>
+      <p>给要使用 VPN 的人或设备起个名字，系统会为他生成专属连接。</p>
+      <form method="post" action="/users/add" data-wait-form>
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+        <input type="hidden" name="next" value="guide">
+        <div class="input-action">
+          <input name="name" maxlength="32" pattern="[A-Za-z0-9_]+" required autocomplete="off"
+                 placeholder="例如：me 或 iphone" aria-label="名字">
+          <button class="button primary" type="submit" data-wait-text="正在添加…">添加</button>
+        </div>
+        <small>英文、数字或下划线，例如 mama、dad_phone。</small>
+      </form>
+      <footer class="guide-foot">
+        <button class="button secondary compact" type="button" data-guide-close>稍后再说</button>
+        <span></span>
+      </footer>
+    </section>
+
+    <section class="guide-body" data-guide-step="2" hidden>
+      <h2 id="guide-title-2">先在这台设备上装一个客户端</h2>
+      {% if my_platform %}
+      {% set app = my_platform.apps[0] %}
+      <p>当前设备：<b>{{ my_platform.label }}</b>。安装好后，点击「已安装，继续」。</p>
+      <div class="guide-client-card">
+        <div class="guide-client-heading">
+          <strong>{{ app.name }}</strong>
+          <span class="app-recommended">推荐</span>
+        </div>
+        <p class="guide-client-description">{{ app.where }}</p>
+        <div class="guide-client-downloads">
+          {% for option in downloads[app.key] %}
+          <a class="button secondary compact download-button"
+             href="{{ option.url | download_href }}" target="_blank" rel="noopener noreferrer">↓ {{ option.label }}</a>
+          {% endfor %}
+        </div>
+      </div>
+      {% if my_platform.blocked %}
+      <p class="danger-line">如果在 App Store 里搜不到，说明你的 Apple ID 是中国区的。
+        点下面的「其他客户端或设备」查看解决办法。</p>
+      {% endif %}
+      {% else %}
+      <p>没认出你的设备。点下面的「选择设备」查看对应的安装步骤。</p>
+      {% endif %}
+      <footer class="guide-foot">
+        {% if guide %}
+        <a class="button secondary compact" href="{{ guide.guide_url }}"
+           target="_blank" rel="noopener noreferrer">{{ '其他客户端或设备' if my_platform else '选择设备' }}</a>
+        {% else %}<span></span>{% endif %}
+        <button class="button primary" type="button" data-guide-next="3">{{ '已安装，继续' if my_platform else '下一步' }}</button>
+      </footer>
+    </section>
+
+    <section class="guide-body" data-guide-step="3" hidden>
+      <h2 id="guide-title-3">{{ '把连接导入客户端' if guide else '先添加用户' }}</h2>
+      {% if guide and my_platform %}
+      {% set app = my_platform.apps[0] %}
+      {% set deep_link = guide.deep_links.get(app.key) %}
+      {% set singbox_app = app.key.startswith('singbox-') %}
+      {% if deep_link %}
+      <p>已安装 {{ app.name }}？点下面的按钮，在打开的 App 里确认导入。</p>
+      <a class="import-button primary" href="{{ deep_link }}">一键导入到 {{ app.name }} <span aria-hidden="true">→</span></a>
+      <p class="guide-next-action">导入后，打开 {{ app.name }} 的连接开关。</p>
+      {% else %}
+      <p>{{ app.name }} 不支持一键导入。打开 App，按下面的方法手动添加。</p>
+      {% endif %}
+      <details class="guide-manual" {% if not deep_link %}open{% endif %}>
+        <summary>{{ '按钮没反应？手动添加' if deep_link else '手动添加方法' }}</summary>
+        <p>在 {{ app.name }} 中选择「{{ '添加远程配置' if singbox_app else '添加订阅' }}」，复制下面的链接并粘贴。</p>
+        <div class="share-line">
+          <input id="guide-manual-link" value="{{ guide.singbox_url if singbox_app else guide.sub_url }}" readonly
+                 aria-label="{{ app.name }} 手动添加链接">
+          <button class="icon-button" type="button" data-copy-target="guide-manual-link"
+                  title="复制链接" aria-label="复制链接">复制</button>
+        </div>
+      </details>
+      {% elif guide %}
+      <p>选择你的设备后，按对应步骤安装客户端并导入连接。</p>
+      <a class="button primary" href="{{ guide.guide_url }}"
+         target="_blank" rel="noopener noreferrer">选择设备，查看步骤</a>
+      {% else %}
+      <p>先添加一个用户，系统才会生成连接。</p>
+      {% endif %}
+      <footer class="guide-foot">
+        {% if guide and my_platform %}
+        <a class="guide-alt-link" href="{{ guide.guide_url }}"
+           target="_blank" rel="noopener noreferrer">使用其他客户端或设备？查看步骤 ↗</a>
+        {% else %}<span></span>{% endif %}
+        <button class="button primary compact" type="button" data-guide-close>完成</button>
+      </footer>
+    </section>
+  </div>
+</div>
+
+{% set help_url = 'https://iwantrun.com/category/vpn-proxy' %}
+<div class="page-head">
+  <h1>概览</h1>
+  <div class="page-actions">
+    {% if client_count %}
+    <button class="button secondary compact" type="button" data-guide-open>新手引导</button>
+    {% endif %}
+    <form method="post" action="/repair" data-wait-form
+          title="重建配置并重启服务，不影响用户和已发出的链接">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+      <button class="button secondary compact" type="submit" data-wait-text="正在检查…">检查并修复</button>
+    </form>
+    <a class="button secondary compact" href="{{ help_url }}" target="_blank" rel="noopener noreferrer">更多帮助 ↗</a>
+  </div>
+</div>
+
+{% if active_count == 0 %}
+<div class="alert info">
+  <span>还没有可用的用户。添加一个用户后，VPN 服务会自动启动。</span>
+  <a class="button primary compact" href="/users#add-user">添加用户</a>
+</div>
+{% elif not running %}
+<div class="alert error">
+  <span>VPN 服务没有在运行。点「检查并修复」会重建配置并重新启动。</span>
+  <form method="post" action="/repair" data-wait-form>
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+    <button class="button primary compact" type="submit" data-wait-text="正在检查…">检查并修复</button>
+  </form>
+</div>
+{% elif sni_broken %}
+<div class="alert error">
+  <span>伪装域名 <code>{{ reality_sni }}</code> 无法访问，「日常连接」暂时都连不上，换一个即可恢复。</span>
+  <form method="post" action="/settings/rescan-sni" data-wait-form
+        data-confirm="会排除当前域名，从其他可用域名中选择一个。更换成功后，之前发出去的单条链接会失效；订阅链接会在客户端刷新后更新。确定换吗？">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+    <input type="hidden" name="next" value="home">
+    <button class="button primary compact" type="submit" data-wait-text="正在挑选…">自动更换</button>
+  </form>
+</div>
+{% elif not has_traffic %}
+{# With no traffic recorded, a closed provider security group is the most likely cause. #}
+<div class="alert warn">
+  <span>还没有收到任何流量。如果客户端连不上，请先到服务器商家后台的「防火墙 / 安全组」放行下方列出的端口。</span>
+  <a class="button secondary compact" href="{{ help_url }}" target="_blank" rel="noopener noreferrer">查看教程 ↗</a>
+</div>
+{% endif %}
+
+<section class="stat-grid" aria-label="运行概览">
+  <div class="stat">
+    <span>服务状态</span>
+    <strong class="state-{{ 'ok' if ready else 'bad' }}">
+      {% if not active_count %}未启动{% elif not running %}未运行{% elif sni_broken %}需处理{% else %}运行中{% endif %}
+    </strong>
+  </div>
+  <div class="stat">
+    <span>用户</span>
+    <strong>{{ client_count }}</strong>
+    <small>{{ active_count }} 个可用</small>
+  </div>
+  <div class="stat">
+    <span>在线</span>
+    <strong>{{ recent_count }}</strong>
+    <small>近 3 分钟</small>
+  </div>
+  <div class="stat">
+    <span>累计流量</span>
+    <strong>{{ traffic_total }}</strong>
+    <small>↑ {{ traffic_uplink }} · ↓ {{ traffic_downlink }}</small>
+  </div>
+</section>
+
+<section class="card">
+  <header class="card-head">
+    <h2>用户</h2>
+    <a class="button primary compact" href="/users#add-user">添加用户</a>
+  </header>
+  {% if clients %}
+  <table class="data-table">
+    <thead>
+      <tr><th>名称</th><th>状态</th><th>已用流量</th><th class="hide-sm">最后活动</th><th></th></tr>
+    </thead>
+    <tbody>
+      {% for client in clients %}
+      <tr>
+        <td class="cell-name">{{ client.name }}</td>
+        <td>
+          {% if not client.enabled %}<span class="badge muted">已暂停</span>
+          {% elif client.online %}<span class="badge ok">在线</span>
+          {% else %}<span class="badge">可用</span>{% endif %}
+        </td>
+        <td>{{ client.traffic or '—' }}</td>
+        <td class="hide-sm">{{ client.last_seen or '—' }}</td>
+        <td class="cell-action">
+          <a href="/users?open={{ client.name|urlencode }}#user-{{ client.id }}">分享</a>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p class="card-empty">暂无用户</p>
+  {% endif %}
+</section>
+
+<section class="card">
+  <header class="card-head"><h2>服务器</h2></header>
+  <dl class="kv">
+    <dt>服务器地址</dt><dd><code>{{ server_host or '自动探测' }}</code></dd>
+    <dt>连接方式</dt>
+    <dd>
+      {% for protocol in protocols %}
+      <div>{{ protocol.simple_name }} <span class="kv-muted">{{ protocol.tech_name }} · {{ protocol.port }}/{{ protocol.proto|upper }}</span></div>
+      {% endfor %}
+    </dd>
+    <dt>需放行端口</dt>
+    <dd>
+      {% for rule in firewall_rules %}<code>{{ rule }}</code> {% endfor %}
+      <code>{{ acme_port }}/TCP</code> <code>{{ panel_port }}/TCP</code>
+      <div class="kv-muted">在服务器商家后台的防火墙 / 安全组放行。{{ acme_port }} 用于证书续期，{{ panel_port }} 是管理页面和订阅。</div>
+    </dd>
+  </dl>
+</section>
+{% endblock %}

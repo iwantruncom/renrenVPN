@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="color-scheme" content="light">
+  <meta name="robots" content="noindex, nofollow">
+  <title>开始连接｜人人VPN</title>
+  <link rel="stylesheet" href="{{ static_path }}/app.css?v=20261009a">
+</head>
+<body class="howto-page">
+  {% macro app_setup(app, recommended=false) %}
+  {% set import_link = deep_links[app.key] %}
+  {% set config_link = sub_url ~ '/singbox.json' if app.key.startswith('singbox-') else sub_url %}
+  <section class="setup-app{% if recommended %} setup-app-recommended{% endif %}">
+    <div class="setup-app-heading">
+      <div>
+        <h3>{{ app.name }}</h3>
+        <p>{{ app.where }}</p>
+      </div>
+      {% if recommended %}<span class="app-recommended">推荐</span>{% endif %}
+    </div>
+
+    <div class="setup-step">
+      <span class="setup-number">1</span>
+      <div class="setup-step-content">
+        <h4>安装 {{ app.name }}</h4>
+        <div class="setup-actions">
+          {% for option in downloads[app.key] %}
+          <a class="button secondary compact" href="{{ option.url | download_href }}" target="_blank"
+             rel="noopener noreferrer">{{ option.label }} ↗</a>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+
+    <div class="setup-step">
+      <span class="setup-number">2</span>
+      <div class="setup-step-content">
+        <h4>导入连接</h4>
+        {% if import_link %}
+        <p>装好客户端后，点击按钮并在 App 中确认。</p>
+        <a class="button primary setup-import" href="{{ import_link }}">一键导入到 {{ app.name }} →</a>
+        <details class="setup-manual">
+          <summary>按钮没反应？手动添加</summary>
+          <p>在 {{ app.name }} 中添加远程配置，粘贴下面的链接。</p>
+          <div class="share-line">
+            <input id="manual-{{ app.key }}" value="{{ config_link }}" readonly
+                   aria-label="{{ app.name }} 手动添加链接">
+            <button class="icon-button" type="button" data-copy-target="manual-{{ app.key }}"
+                    aria-label="复制 {{ app.name }} 链接">复制</button>
+          </div>
+        </details>
+        {% else %}
+        <p>在 {{ app.name }} 中添加订阅，粘贴下面的链接。</p>
+        <div class="share-line">
+          <input id="manual-{{ app.key }}" value="{{ config_link }}" readonly
+                 aria-label="{{ app.name }} 手动添加链接">
+          <button class="icon-button" type="button" data-copy-target="manual-{{ app.key }}"
+                  aria-label="复制 {{ app.name }} 链接">复制</button>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+
+    <div class="setup-step setup-step-last">
+      <span class="setup-number">3</span>
+      <div class="setup-step-content">
+        <h4>打开连接开关</h4>
+        <p>回到 {{ app.name }}，开启 VPN 连接。</p>
+      </div>
+    </div>
+  </section>
+  {% endmacro %}
+
+  <main class="howto-shell">
+    <header class="howto-hero">
+      <img class="howto-logo" src="{{ static_path }}/renrenvpn-source-logo.png"
+           alt="人人VPN：自由・开放・人人可用" width="200" height="133">
+      <h1><span class="howto-client-name">{{ client.name }}</span> 的连接教程</h1>
+    </header>
+
+    <section class="howto-devices" aria-labelledby="device-heading">
+      <div class="howto-section-heading">
+        <h2 id="device-heading">选择你的设备</h2>
+      </div>
+
+      {% for platform in platforms %}
+      <details class="platform-block" {% if platform.key == detected %}open{% endif %}>
+        <summary>
+          <span class="platform-icon" aria-hidden="true">
+            <img src="{{ static_path }}/icons/device-{{ platform.key }}.svg" alt="" width="24" height="24">
+          </span>
+          <span class="platform-name">{{ platform.label }}</span>
+          {% if platform.key == detected %}<span class="you-badge">当前设备</span>{% endif %}
+        </summary>
+        <div class="platform-content">
+          {% if platform.blocked %}
+          <div class="blocker-note">
+            <strong>App Store 搜不到？</strong>
+            <p>这些客户端可能不在中国区上架。请使用可下载它们的 Apple ID；只切换「媒体与购买项目」，不要退出 iCloud。</p>
+          </div>
+          {% endif %}
+
+          {{ app_setup(platform.apps[0], true) }}
+
+          {% if platform.apps|length > 1 %}
+          <details class="setup-alternative">
+            <summary>想用其他客户端？查看 {{ platform.apps[1].name }}</summary>
+            {% for app in platform.apps[1:] %}
+            {{ app_setup(app) }}
+            {% endfor %}
+          </details>
+          {% endif %}
+
+          <div class="platform-help">
+            <span>需要帮助？</span>
+            <a href="{{ platform_help_url }}" target="_blank"
+               rel="noopener noreferrer">查看连接教程 ↗</a>
+          </div>
+        </div>
+      </details>
+      {% endfor %}
+    </section>
+
+    <details class="howto-qr-options">
+      <summary>想扫码添加？查看两种二维码</summary>
+      <div class="howto-qr-grid">
+        <div class="howto-qr-option">
+          <img src="{{ sub_url }}/qr.png" alt="通用订阅二维码" width="176" height="176" loading="lazy">
+          <strong>通用二维码</strong>
+          <p>用于 Karing、v2rayN、v2rayNG。</p>
+        </div>
+        <div class="howto-qr-option">
+          <img src="{{ sub_url }}/qr.png?p=singbox" alt="sing-box 专用配置二维码"
+               width="176" height="176" loading="lazy">
+          <strong>sing-box 专用</strong>
+          <p>用于 sing-box 官方客户端。</p>
+        </div>
+      </div>
+      <p class="howto-qr-note">在另一台设备上打开本页，再用手机里的客户端扫码。</p>
+    </details>
+
+    <details class="howto-support">
+      <summary>连接不上怎么办？</summary>
+      <div>
+        <p>先确认客户端已安装，并打开了连接开关。导入按钮没反应，可展开上面的“手动添加”。</p>
+        <p>仍然连不上？联系把这条连接发给你的人，请他在管理页面点击“检查并修复”。</p>
+      </div>
+    </details>
+
+    {% with method_id='tutorial' %}
+    {% include "connection_methods.html" %}
+    {% endwith %}
+
+    <p class="howto-privacy">连接链接只发给要使用这个 VPN 的人。</p>
+  </main>
+  <script src="{{ static_path }}/app.js?v=20261009a"></script>
+</body>
+</html>

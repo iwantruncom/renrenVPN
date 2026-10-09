@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="color-scheme" content="light">
+  <title>{% block title %}人人VPN{% endblock %}</title>
+  <meta name="robots" content="noindex, nofollow">
+  <link rel="stylesheet" href="{{ static_path }}/app.css?v=20261009a">
+  {% block head %}{% endblock %}
+</head>
+<body>
+  <header class="site-header">
+    <a class="brand" href="/" aria-label="人人VPN 首页">
+      <span class="brand-logo-frame" aria-hidden="true">
+        <img class="brand-logo" src="{{ static_path }}/renrenvpn-source-logo.png"
+             width="140" height="93" alt="">
+      </span>
+    </a>
+    <nav class="main-nav" aria-label="管理菜单">
+      <a href="/" class="{{ 'active' if active == 'home' else '' }}">概览</a>
+      <a href="/users" class="{{ 'active' if active == 'users' else '' }}">用户</a>
+      <a href="/settings" class="{{ 'active' if active == 'settings' else '' }}">设置</a>
+    </nav>
+    <form class="logout-form" method="post" action="/logout">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+      <button class="logout-link" type="submit">退出</button>
+    </form>
+  </header>
+
+  <main class="page-shell">
+    {% block content %}{% endblock %}
+  </main>
+
+  <nav class="mobile-nav" aria-label="手机管理菜单">
+    <a href="/" class="{{ 'active' if active == 'home' else '' }}">概览</a>
+    <a href="/users" class="{{ 'active' if active == 'users' else '' }}">用户</a>
+    <a href="/settings" class="{{ 'active' if active == 'settings' else '' }}">设置</a>
+  </nav>
+  <script src="{{ static_path }}/app.js?v=20261009a"></script>
+</body>
+</html>

@@ -1,0 +1,175 @@
+{% extends "base.html" %}
+{% block title %}设置{% endblock %}
+{% block content %}
+{% if msg %}<div class="notice success">{{ msg }}</div>{% endif %}
+{% if error %}<div class="notice error">{{ error }}</div>{% endif %}
+
+<div class="page-head">
+  <h1>设置</h1>
+</div>
+
+<div class="settings-layout">
+  <section class="card">
+    <header class="card-head"><h2>管理账号</h2></header>
+    <form class="card-body settings-form" method="post" action="/settings/account"
+          data-confirm="保存后需要用新的账号信息重新登录。确定保存吗？">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+      <div class="field">
+        <label for="admin-username">账号</label>
+        <input id="admin-username" name="username" value="{{ admin_username }}" maxlength="32"
+               pattern="[A-Za-z0-9_]+" autocomplete="username" required>
+      </div>
+      <div class="field">
+        <label for="current-password">当前密码</label>
+        <div class="password-input">
+          <input id="current-password" name="current_password" type="password"
+                 autocomplete="current-password" required>
+          <button type="button" data-password-toggle="current-password">显示</button>
+        </div>
+        <small>修改账号或密码都需要先验证当前密码。</small>
+      </div>
+      <div class="field">
+        <label for="new-password">新密码</label>
+        <div class="password-input">
+          <input id="new-password" name="password" type="password" minlength="8" maxlength="72"
+                 autocomplete="new-password" placeholder="不修改请留空">
+          <button type="button" data-password-toggle="new-password">显示</button>
+        </div>
+        <small>至少 8 位，建议字母和数字混合。</small>
+      </div>
+      <button class="button primary" type="submit">保存</button>
+    </form>
+  </section>
+
+  <div class="settings-side">
+    <section class="card">
+      <header class="card-head"><h2>系统信息</h2></header>
+      <dl class="kv">
+        <dt>登录地址</dt>
+        <dd class="share-line">
+          <input id="login-url" value="{{ login_full_url }}" readonly aria-label="管理页面登录地址">
+          <button class="icon-button" type="button" data-copy-target="login-url"
+                  title="复制登录地址" aria-label="复制登录地址">复制</button>
+        </dd>
+        <dt>服务器地址</dt><dd><code>{{ settings.public_host or '自动探测' }}</code></dd>
+        <dt>面板端口</dt><dd><code>{{ panel_port }}</code> <span class="kv-muted">HTTPS，面板与订阅共用</span></dd>
+        <dt>需放行端口</dt>
+        <dd>{% for rule in firewall_rules %}<code>{{ rule }}</code> {% endfor %}<code>{{ acme_port }}/TCP</code> <code>{{ panel_port }}/TCP</code></dd>
+        <dt>伪装域名</dt><dd><code>{{ settings.reality_sni or '未设置' }}</code></dd>
+      </dl>
+    </section>
+
+    <section class="card">
+      <header class="card-head"><h2>版本更新</h2></header>
+      <form class="card-body settings-form" method="post" action="/settings/update" data-wait-form
+            data-confirm="更新约需 2～5 分钟，期间管理页面会暂时打不开，已连接的设备可能断开几秒后自动恢复。账号密码、用户和订阅链接都不会变；更新失败会自动恢复原版本。确定现在更新吗？">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+        <div class="inline-setting update-setting">
+          <div>
+            <strong>当前版本 {{ settings.installed_release or '未知' }}</strong>
+            {% if update_status.state in ('done', 'latest', 'failed') %}
+            <p class="kv-muted">{{ '已是最新版本' if update_status.state == 'latest' else update_status.message }}</p>
+            <p class="kv-muted">上次检查：{{ update_status.at }}</p>
+            {% else %}
+            <p class="kv-muted">更新期间账号密码、用户和订阅链接都不会变。</p>
+            {% endif %}
+          </div>
+          <button class="button secondary compact" type="submit" data-wait-text="正在启动…">检查并更新</button>
+        </div>
+      </form>
+    </section>
+
+    <section class="card">
+      <header class="card-head"><h2>命令行救援</h2></header>
+      <p class="card-note">忘记密码或地址时，SSH 登录服务器执行：</p>
+      <dl class="kv">
+        <dt>重置密码</dt><dd><code>renrenvpn reset-password</code></dd>
+        <dt>查看登录地址</dt><dd><code>renrenvpn info</code></dd>
+        <dt>修改端口</dt><dd><code>renrenvpn set-port</code></dd>
+        <dt>备份 / 恢复</dt><dd><code>renrenvpn backup</code> <code>renrenvpn restore</code></dd>
+      </dl>
+    </section>
+  </div>
+</div>
+
+<details class="advanced-block">
+  <summary>高级设置</summary>
+  <form class="settings-form" method="post" action="/settings/server">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+    <p class="card-note">不确定的话保持默认。修改服务器、端口、伪装域名或连接方式后，需要把新链接重新发给用户。</p>
+
+    <div class="field">
+      <label for="public-host">服务器地址</label>
+      <input id="public-host" name="public_host" value="{{ settings.public_host }}"
+             placeholder="留空则自动探测" autocomplete="off">
+      <small>换了服务器 IP，或者想改用域名时，在这里改。所有连接链接都会跟着更新。</small>
+    </div>
+
+    <div class="field">
+      <label for="panel-port">管理页面端口</label>
+      <input id="panel-port" name="panel_port" type="number" min="1024" max="65535"
+             value="{{ panel_port }}" inputmode="numeric" required>
+      <small>修改前必须先在服务器商家的防火墙或安全组放行新端口。保存后管理地址和
+        所有订阅链接都会改变，需要把新链接重新发给用户。</small>
+    </div>
+
+    {# Manual REALITY SNI override; leaving it blank keeps the current value. #}
+    <div class="field">
+      <label for="reality-sni">伪装域名</label>
+      <input id="reality-sni" name="reality_sni" value="{{ settings.reality_sni }}"
+             placeholder="留空则保持不变" autocomplete="off">
+      <small>「日常连接」靠伪装成这个域名的流量来隐蔽。它必须是国内能访问、且解析到
+        国外 IP 的站点，还要支持 TLS1.3 + h2 + X25519 —— 不确定就用下面的按钮自动挑。
+        <b>改动会让已发出的链接全部失效。</b></small>
+    </div>
+
+    <div class="field">
+      <label for="session-days">保持登录</label>
+      <input id="session-days" name="session_days" type="number" min="1" max="365"
+             value="{{ settings.session_days }}">
+      <small>多少天之后需要重新登录管理页面。</small>
+    </div>
+
+    <div class="field">
+      <label>连接方式</label>
+      <div class="protocol-picks">
+        {% for protocol in all_protocols %}
+        <label class="protocol-pick">
+          <input type="checkbox" name="protocols" value="{{ protocol.key }}"
+                 {{ 'checked' if protocol.key in enabled_keys else '' }}>
+          <span>
+            <strong>{{ protocol.simple_name }}</strong>
+            <em>{{ protocol.tech_name }}</em>
+            <small>{{ protocol.hint }} 需要放行 {{ protocol.port }}/{{ protocol.proto|upper }}。</small>
+          </span>
+        </label>
+        {% endfor %}
+      </div>
+      <small>默认只开前两个，它们共用 443 端口，你在服务商后台只需要放行一次。多开几个就要多放行几个端口。</small>
+    </div>
+
+    <div class="field">
+      <label for="hy2-obfs">弱网连接混淆密码</label>
+      <input id="hy2-obfs" name="hy2_obfs" value="{{ settings.hy2_obfs }}"
+             placeholder="留空则不启用" autocomplete="off">
+      <small>填任意一串字符即可启用。只在弱网连接被运营商限速时才需要，开了以后旧链接要重新发。</small>
+    </div>
+
+    <button class="button primary" type="submit">保存</button>
+  </form>
+
+  {# HTML forms cannot be nested. #}
+  <form class="settings-form" method="post" action="/settings/rescan-sni" data-wait-form
+        data-confirm="会排除当前域名，从其他可用域名中选择最快的一个。更换成功后，之前发出去的单条链接会失效；订阅链接会在客户端刷新后更新。确定吗？">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+    <div class="inline-setting">
+      <div>
+        <strong>更换伪装域名</strong>
+        <p class="kv-muted">从其他通过检测的候选域名中自动选择最快的一个；没有可用的则保持不变。</p>
+      </div>
+      <button class="button secondary compact" type="submit" data-wait-text="正在检测，约十几秒…">自动更换</button>
+    </div>
+  </form>
+</details>
+
+{% endblock %}

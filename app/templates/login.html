@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="color-scheme" content="light">
+  <meta name="robots" content="noindex, nofollow">
+  {# Keep product identifiers out of the unauthenticated login page. #}
+  <title>登录</title>
+  <link rel="stylesheet" href="{{ static_path }}/app.css?v=20261009a">
+</head>
+<body class="login-page">
+  <main class="login-shell">
+    <form class="login-form" method="post" action="{{ login_path }}">
+      <h1>登录</h1>
+      {% if error %}<div class="notice error">{{ error }}</div>{% endif %}
+
+      <div class="field">
+        <label for="login-username">账号</label>
+        <input id="login-username" name="username" value="admin" autocomplete="username"
+               required autofocus>
+      </div>
+
+      <div class="field">
+        <label for="login-password">密码</label>
+        <div class="password-input">
+          <input id="login-password" name="password" type="password"
+                 autocomplete="current-password" required>
+          <button type="button" data-password-toggle="login-password">显示</button>
+        </div>
+      </div>
+
+      <button class="button primary wide" type="submit">登录</button>
+      {# Keep password-recovery details out of the unauthenticated page. #}
+      <p class="login-hint">忘记密码？用 SSH 登录服务器后，运行安装完成时提示的重置命令。</p>
+    </form>
+  </main>
+  <script src="{{ static_path }}/app.js?v=20261009a"></script>
+</body>
+</html>

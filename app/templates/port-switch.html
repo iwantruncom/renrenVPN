@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block title %}正在切换管理端口{% endblock %}
+{% block head %}<meta http-equiv="refresh" content="5;url={{ new_url }}">{% endblock %}
+{% block content %}
+<section class="empty-state">
+  <h1>正在切换到 {{ new_port }}</h1>
+  <p>服务会短暂重启，5 秒后自动打开新地址。</p>
+  <a class="button primary" href="{{ new_url }}">立即打开新地址</a>
+  <p>如果新地址打不开，请先检查云安全组；需要恢复时 SSH 运行
+    <code>renrenvpn set-port {{ old_port }}</code>。</p>
+</section>
+{% endblock %}

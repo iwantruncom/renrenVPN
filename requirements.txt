@@ -1,0 +1,10 @@
+fastapi==0.115.6
+uvicorn[standard]==0.34.0
+jinja2==3.1.6
+python-multipart==0.0.32
+qrcode[pil]==8.0
+bcrypt==4.2.1
+itsdangerous==2.2.0
+# 只为读 sing-box 的流量统计（gRPC）。没有装 protobuf / grpcio-tools：
+# 要收发的两个消息很小，app/stats.py 里手写了 wire format，见那里的说明。
+grpcio==1.83.0

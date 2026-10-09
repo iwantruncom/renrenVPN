@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+{% block title %}正在更新{% endblock %}
+{% block content %}
+{# app.js polls the status; the panel restarts midway, so failed requests just mean "still updating". #}
+<section class="empty-state update-progress" id="update-progress" data-status-url="/settings/update-status">
+  <h1 data-update-title>正在更新</h1>
+  <p data-update-message>正在启动更新…</p>
+  <p class="kv-muted" data-update-hint>通常需要 2～5 分钟。期间管理页面会暂时打不开，已连接的设备可能断开几秒后自动恢复。请不要关闭这个页面。</p>
+  <a class="button primary" href="/settings" data-update-done hidden>返回设置</a>
+</section>
+{% endblock %}
